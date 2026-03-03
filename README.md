@@ -1,0 +1,1 @@
+Este projeto apresenta um pipeline escrito na linguagem de programação Python para tentar detectar estresse hídrico em plantas a partir da extração das frequências naturais de vibração por intermédio de filmagens de mudas de açaí. 
