@@ -1,11 +1,13 @@
 import cv2 as cv
 import tkinter as tk
-import numpy as np
 import subprocess
 import json
-from scipy.signal import find_peaks
 
 def get_screen_size():
+    """
+    Retorna a largura e a altura da tela em pixels.
+    Usado internamente para centralizar janelas. Requer tkinter.
+    """
     root = tk.Tk()
     root.withdraw()  # não mostra janela
     screen_w = root.winfo_screenwidth()
@@ -14,6 +16,12 @@ def get_screen_size():
     return screen_w, screen_h
 
 def roi_selection(video_path):
+    """
+    Abre o primeiro frame do vídeo em uma janela para o usuário selecionar
+    a região de interesse (ROI) com o mouse. Arraste para desenhar um retângulo.
+    Ao terminar, pressione ENTER ou ESC. As coordenadas (x, y, w, h) são
+    impressas no terminal para uso em pre_processing(..., roi=(x, y, w, h)).
+    """
     drawing = False
     ix, iy = -1, -1
     
@@ -73,7 +81,9 @@ def roi_selection(video_path):
     
 def video_rotation(video_path):
     """
-    Retorna a rotação do vídeo em graus (0, 90, 180, 270)
+    Retorna o ângulo de rotação do vídeo em graus (0, 90, 180 ou 270).
+    Usa ffprobe para ler metadados do arquivo. Se não houver informação
+    de rotação, retorna 0.
     """
     cmd = [
         "ffprobe",
@@ -101,6 +111,11 @@ def video_rotation(video_path):
     return rotation
 
 def video_status(video_path):
+    """
+    Exibe no terminal informações do vídeo: caminho, FPS, largura/altura,
+    quantidade de frames, duração, modo de cor, shape do primeiro frame
+    e ângulo de rotação. Útil para inspeção rápida antes do processamento.
+    """
     video = cv.VideoCapture(video_path)
     print(f'PATH = {video_path}')
     
@@ -122,26 +137,74 @@ def video_status(video_path):
     print(f'SHAPE = {video.read()[1].shape}')
     
     print(f'ROTATION = {video_rotation(video_path)}')
-    
-def get_top_n_peaks(freqs, fft_vals, n = 3, min_freq = 0.5):
-    
-    # Ignora frequências muito baixas (ruído DC)
-    mask = freqs > min_freq
-    freqs = freqs[mask]
-    fft_vals = fft_vals[mask]
 
-    # Detecta picos locais
-    peaks, _ = find_peaks(fft_vals)
 
-    if len(peaks) == 0:
-        return []
+def pre_processing(in_video_path, out_video_path, num_frames, fps=None, scale=0.2, roi=None):
+    """
+    Pré-processa um vídeo e grava um novo arquivo.
 
-    # Ordena picos por amplitude (decrescente)
-    sorted_peaks = peaks[np.argsort(fft_vals[peaks])[::-1]]
+    Lê até num_frames quadros do vídeo de entrada, converte para escala de cinza,
+    opcionalmente recorta uma região (roi) e redimensiona. O vídeo de saída é
+    gravado em out_video_path.
 
-    # Seleciona os n maiores
-    top_peaks = sorted_peaks[:n]
+    Parâmetros
+    ----------
+    in_video_path : str
+        Caminho do vídeo de entrada.
+    out_video_path : str
+        Caminho do vídeo de saída (será sobrescrito se existir).
+    num_frames : int
+        Número máximo de frames a processar.
+    fps : float, opcional
+        FPS do vídeo de saída. Se None, usa o FPS do vídeo de entrada.
+    scale : float, opcional
+        Fator de redimensionamento (0 a 1). Ex.: 0.2 reduz para 20% do tamanho.
+    roi : tuple (x, y, w, h), opcional
+        Região de interesse para recortar antes de redimensionar. Use roi_selection()
+        para obter esses valores interativamente.
 
-    results = [(freqs[i], fft_vals[i]) for i in top_peaks]
+    Levanta
+    -------
+    IOError
+        Se o vídeo de entrada não puder ser aberto.
+    """
+    video = cv.VideoCapture(in_video_path)
 
-    return results
+    if not video.isOpened():
+        raise IOError("Erro ao abrir o vídeo")
+
+    if fps is None:
+        fps = video.get(cv.CAP_PROP_FPS)
+
+    if roi is not None:
+        x, y, w, h = roi
+        base_w, base_h = w, h
+    else:
+        base_w = int(video.get(cv.CAP_PROP_FRAME_WIDTH))
+        base_h = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+    width = int(base_w * scale)
+    height = int(base_h * scale)
+
+    fourcc = cv.VideoWriter_fourcc(*"mp4v")
+    out = cv.VideoWriter(out_video_path, fourcc, fps, (width, height), isColor=False)
+
+    count = 0
+
+    while count < num_frames:
+        ret, frame = video.read()
+        if not ret:
+            break
+
+        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+        if roi is not None:
+            gray = gray[y : y + h, x : x + w]
+
+        gray_small = cv.resize(gray, (width, height), interpolation=cv.INTER_AREA)
+        out.write(gray_small)
+        count += 1
+
+    video.release()
+    out.release()
+    cv.destroyAllWindows()
