@@ -1,7 +1,51 @@
 import cv2 as cv
+from cv2.typing import MatLike
 import numpy as np
 
-def extract_signal(video_path):
+from marajomodes.utils.conversions import frame_to_gray_array
+
+def extract_signal_handle_frame(
+    frame: MatLike,
+    prev: np.ndarray[tuple, np.dtype[np.float32]]
+) -> tuple[float, np.ndarray[tuple, np.dtype[np.float32]]]:
+    """
+    Extrai um sinal 1D de movimento lateral a partir de um frame.
+
+    Para cada frame, calcula a diferença absoluta (movimento), soma as diferenças por coluna e obtém a posição do centróide no eixo X. O
+    resultado é uma série temporal: a posição horizontal do "centro de movimento"
+    em cada frame. A média do sinal é removida (tendência DC).
+    
+
+    Parâmetros
+    ----------
+    frame : np.ndarray
+        Frame da imagem em escala de cinza.
+    prev : np.ndarray
+        Frame anterior em escala de cinza.
+
+    Retorna
+    -------
+    float
+        Posição horizontal do "centro de movimento" em cada frame.
+
+    Levanta
+    -------
+    RuntimeError
+        Se o frame não puder ser aberto ou estiver vazio.
+    """
+
+    frame = frame_to_gray_array(frame)
+
+    diff = cv.absdiff(frame, prev)
+    col_sum = np.sum(diff, axis=0)
+    x_positions = np.arange(len(col_sum))
+
+    if np.sum(col_sum) > 0:
+        return np.sum(x_positions * col_sum) / np.sum(col_sum), frame
+
+    return 0, frame
+
+def extract_signal(video_path: str) -> np.ndarray[tuple, np.dtype[np.float32]]:
     """
     Extrai um sinal 1D de movimento lateral a partir de um vídeo.
 
@@ -31,37 +75,18 @@ def extract_signal(video_path):
     cap = cv.VideoCapture(video_path)
 
     ret, prev = cap.read()
-    if not ret:
-        raise RuntimeError("Erro ao abrir vídeo")
+    if not ret: raise RuntimeError("Erro ao abrir vídeo")
 
-    if prev.ndim == 3:
-        prev = prev[:, :, 0]
-        
-    prev = prev.astype(np.float32)
+    prev = frame_to_gray_array(prev)
 
     signal = []
 
     while True:
         ret, frame = cap.read()
-        if not ret:
-            break
+        if not ret: break
 
-        if frame.ndim == 3:
-            frame = frame[:, :, 0]
-            
-        frame = frame.astype(np.float32)
-        diff = cv.absdiff(frame, prev)
-        col_sum = np.sum(diff, axis=0)
-        x_positions = np.arange(len(col_sum))
-
-        if np.sum(col_sum) > 0:
-            cx = np.sum(x_positions * col_sum) / np.sum(col_sum)
-        else:
-            cx = 0
-
+        cx, prev = extract_signal_handle_frame(frame, prev)
         signal.append(cx)
-
-        prev = frame
 
     cap.release()
 
