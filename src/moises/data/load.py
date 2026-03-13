@@ -1,9 +1,10 @@
 import cv2 as cv
 import numpy as np
+from moises.data.video import Video
 
 
 def load_video_dataset(
-    video_path: str,
+    video: Video,
     max_frames: int | None = None,
 ) :
     """
@@ -37,52 +38,34 @@ def load_video_dataset(
     IOError
         Se o vídeo não puder ser aberto.
     """
-    cap = cv.VideoCapture(video_path)
+
+    print("Loading video dataset...")
+    print("Video shape:", video.width, video.height)
+
+    dataset = np.zeros((video.frame_count, video.n_pixels), dtype=np.float32)
+    frames = np.zeros((video.height, video.width, video.frame_count), dtype=np.uint8)
+
+    cap = cv.VideoCapture(video.video_path)
     if not cap.isOpened():
-        raise IOError(f"Erro ao abrir o vídeo: {video_path}")
+        raise IOError(f"Erro ao abrir o vídeo: {video.video_path}")
 
-    fps = int(cap.get(cv.CAP_PROP_FPS))
-    n_rows = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
-    n_cols = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
-    n_pixels = n_rows * n_cols
-
-    total_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
-    
-    # --- Compression settings ---
-    scale = 0.5  # 0.5 = half resolution (75% memory reduction)
-    new_cols = int(n_cols * scale)
-    new_rows = int(n_rows * scale)
-    n_pixels = new_rows * new_cols
-
-    n_frames = (
-        min(max_frames, total_frames)
-        if max_frames is not None
-        else total_frames
-    )
-
-    dataset = np.zeros((n_frames, n_pixels), dtype=np.float32)
-    frames = np.zeros((new_rows, new_cols, n_frames), dtype=np.uint8)
-
-    for i in range(n_frames):
+    for i in range(video.frame_count):
         ret, frame = cap.read()
         if not ret:
             dataset = dataset[:i]
             frames = frames[:, :, :i]
-            n_frames = i
             break
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-        small = cv.resize(gray, (new_cols, new_rows), interpolation=cv.INTER_AREA)
-    
+        # Resize frame to the (possibly downscaled) video dimensions
+        small = cv.resize(gray, (video.width, video.height), interpolation=cv.INTER_AREA)
+
         frames[:, :, i] = small
         dataset[i, :] = small.ravel().astype(np.float32)
-
-        #frames[:, :, i] = gray
-        #dataset[i, :] = gray.ravel().astype(np.float32)
 
     cap.release()
 
     mean = np.mean(dataset, axis=0, dtype=np.float32)
     dataset = dataset - mean
 
-    return dataset, fps, (new_rows, new_cols), mean, frames
+    return dataset, mean

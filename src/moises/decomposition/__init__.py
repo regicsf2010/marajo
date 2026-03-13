@@ -1,5 +1,6 @@
-"""Redução de dimensionalidade: PCA sobre parte real e imaginária (Hilbert)."""
+"""Redução de dimensionalidade (PCA) e separação de fontes (Complexity Pursuit)."""
 
-from moises.decomposition.pca_dual import pca_dual
+from moises.decomposition.reduction import pca
+from moises.decomposition.cp_alg import cp_alg
 
-__all__ = ["pca_dual"]
+__all__ = ["pca", "cp_alg"]
