@@ -84,3 +84,6 @@ def plot_freqs(freqs, fft_vals, names, save = False, w = 19, h = 8):
     
     if save:
         plt.savefig('out/frequency.png', bbox_inches = 'tight')
+        
+        
+
