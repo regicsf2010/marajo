@@ -207,7 +207,7 @@ def CP_alg(mixtures):
     return ys, W
 
 
-def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15):
+def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15, save = False):
     t = np.arange(video_features['frames']).reshape(-1, 1) / video_features['fps']
     t_plot = np.asarray(t).ravel()
 
@@ -292,4 +292,8 @@ def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15
     axes[-1, 0].set_xlabel("Time (s)")
     axes[-1, 1].set_xlabel("Frequency (Hz)")
 
-    plt.show()
+    # plt.show()
+    # plt.tight_layout()
+    
+    if save:
+        plt.savefig('out/sfp.pdf', bbox_inches = 'tight')
