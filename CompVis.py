@@ -217,6 +217,7 @@ def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15
         axes = np.expand_dims(axes, axis=0)
 
     cax = 0 # contador para a linha do axis
+    freqs_of_highest_peaks = {}
     
     for i in nPC:
         signal = unmixed[:, i]
@@ -254,6 +255,9 @@ def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15
             peak_lines.append(f"freq: {freq_pos[idx]:.2f} Hz | amp: {psd_pos[idx]:.2f}")
         peak_text = "\n".join(peak_lines)
 
+        # Montar saída
+        freqs_of_highest_peaks[i] = freq_pos[top_peak_indices[0]]
+        
         # --- Source ---
         ax = axes[cax, 0]
         ax.plot(t_plot, signal, linewidth=1.5)
@@ -297,3 +301,5 @@ def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15
     
     if save:
         plt.savefig('out/sfp.pdf', bbox_inches = 'tight')
+        
+    return freqs_of_highest_peaks
