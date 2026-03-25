@@ -1,6 +1,79 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import cv2 as cv
 import numpy as np
+
 from moises.data.video import Video
+
+
+def _load_video_chunk(
+    video_path: str,
+    start: int,
+    count: int,
+    width: int,
+    height: int,
+    n_pixels: int,
+) -> tuple[int, np.ndarray]:
+    """Read a contiguous frame range; each call uses its own VideoCapture."""
+    dataset = np.zeros((count, n_pixels), dtype=np.float32)
+    cap = cv.VideoCapture(video_path)
+    if not cap.isOpened():
+        cap.release()
+        raise IOError(f"Erro ao abrir o vídeo: {video_path}")
+
+    if start > 0:
+        cap.set(cv.CAP_PROP_POS_FRAMES, start)
+
+    for i in range(count):
+        ret, frame = cap.read()
+        if not ret:
+            dataset = dataset[:i]
+            break
+        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        small = cv.resize(gray, (width, height), interpolation=cv.INTER_AREA)
+        dataset[i, :] = small.ravel().astype(np.float32)
+
+    cap.release()
+    return start, dataset
+
+
+def _load_video_dataset_parallel(video: Video) -> tuple[np.ndarray, np.ndarray]:
+
+    print('Using parallel load')
+    n = video.frame_count
+    w = min(video.workers, n)
+    chunk_size = (n + w - 1) // w
+    tasks: list[tuple[int, int]] = []
+    for k in range(w):
+        start = k * chunk_size
+        count = min(chunk_size, n - start)
+        if count <= 0:
+            break
+        tasks.append((start, count))
+
+    results: list[tuple[int, np.ndarray]] = []
+    with ThreadPoolExecutor(max_workers=len(tasks)) as ex:
+        futs = [
+            ex.submit(
+                _load_video_chunk,
+                video.video_path,
+                start,
+                count,
+                video.width,
+                video.height,
+                video.n_pixels,
+            )
+            for start, count in tasks
+        ]
+        for fut in as_completed(futs):
+            results.append(fut.result())
+
+    results.sort(key=lambda x: x[0])
+    dataset = np.vstack([r[1] for r in results])
+
+    mean = np.mean(dataset, axis=0, dtype=np.float32)
+    dataset = dataset - mean
+    return dataset, mean
 
 
 def load_video_dataset(
@@ -41,6 +114,9 @@ def load_video_dataset(
 
     print("Loading video dataset...")
     print("Video shape:", video.width, video.height)
+
+    if video.workers > 1 and video.frame_count > 0:
+        return _load_video_dataset_parallel(video)
 
     dataset = np.zeros((video.frame_count, video.n_pixels), dtype=np.float32)
     frames = np.zeros((video.height, video.width, video.frame_count), dtype=np.uint8)

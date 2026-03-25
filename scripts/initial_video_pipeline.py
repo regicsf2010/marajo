@@ -1,4 +1,4 @@
-import sys, argparse, os
+import sys, os
 import numpy as np
 
 sys.path.insert(0, "src")
@@ -16,7 +16,7 @@ def process_video(video_path, max_frames, scale=1, out_dir="prep", npc=16):
     print("Max Frames", max_frames)
     print("npc (PCA cap for .npy)", npc)
 
-    video = Video(video_path, max_frames=max_frames, scale=scale)
+    video = Video(video_path, max_frames=max_frames, scale=scale, workers=6)
     video.load()
 
     dataset, mean = load_video_dataset(video)
@@ -45,6 +45,7 @@ def process_video(video_path, max_frames, scale=1, out_dir="prep", npc=16):
 def process_folder(path, out_path, scale, max_frames, npc):
 
     children = os.listdir(path)
+    rotation = 1
     for child in children:
         c_path = os.path.join(path, child)
         if os.path.isdir(c_path):
@@ -56,7 +57,14 @@ def process_folder(path, out_path, scale, max_frames, npc):
                 npc,
             )
         elif child[-4:] == '.mp4':
-            process_video(c_path, max_frames, scale, out_path, npc=npc)
+            process_video(
+                    c_path, 
+                    max_frames, 
+                    scale, 
+                    out_dir= os.path.join(out_path, f'rotation_{rotation}'), 
+                    npc=npc
+            )
+            rotation += 1
 
 def process_batch(path, out_path, scales=[1], max_frames=[None], npc=16):
 
@@ -71,4 +79,4 @@ def process_batch(path, out_path, scales=[1], max_frames=[None], npc=16):
             )
 
 
-process_batch('../videos/regi', 'outt', [.5, .2], [400], npc=16)
+process_batch('../videos/regi', 'out/raw', [.5, .3, .2], [500, 400], npc=16)

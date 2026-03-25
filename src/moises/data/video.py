@@ -11,14 +11,25 @@ class Video:
     mode: str
     shape: tuple[int, int, int]
     scale: float
+    workers: int
 
-    def __init__(self, video_path: str, max_frames: int | None = None, scale: float = 1):
-
+    def __init__(
+        self,
+        video_path: str,
+        max_frames: int | None = None,
+        scale: float = 1,
+        workers: int = 1,
+    ):
         self.video_path = video_path
         self.max_frames = max_frames
         self.scale = scale
+        self.workers = max(1, int(workers))
 
-    def load(self):
+    def load(self, workers: int | None = None):
+        """Read video metadata. If ``workers`` is set, overrides the constructor value for parallel decoding in ``load_video_dataset``."""
+        if workers is not None:
+            self.workers = max(1, int(workers))
+
         cap = cv.VideoCapture(self.video_path)
 
         if not cap.isOpened():
