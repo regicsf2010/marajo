@@ -210,7 +210,7 @@ def CP_alg(mixtures):
 def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15, save = False):
     t = np.arange(video_features['frames']).reshape(-1, 1) / video_features['fps']
     t_plot = np.asarray(t).ravel()
-
+    
     fig, axes = plt.subplots(len(nPC), 3, figsize = (w, h), constrained_layout = True)
 
     if len(nPC) == 1:
@@ -221,7 +221,7 @@ def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15
     
     for i in nPC:
         signal = unmixed[:, i]
-
+    
         # FFT do componente i
         freqs, fft_vals = compute_fft(unmixed[:, i], video_features['fps'])
         freq_plot = np.asarray(freqs).ravel()
