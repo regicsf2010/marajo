@@ -57,9 +57,12 @@ def pre_processing(in_video_path, out_video_path, num_frames, fps = None, scale 
     out.release()
     cv.destroyAllWindows()
     
-def moses_code(video_path, nPC):
-
+def load_grayscale_dataset(video_path):
+    
     cap = cv.VideoCapture(video_path)
+    
+    if not cap.isOpened():
+        raise ValueError(f"Não foi possível abrir o vídeo: {video_path}")
 
     frames = []
 
@@ -68,7 +71,7 @@ def moses_code(video_path, nPC):
         if not ret:
             break
 
-        # grayscale 
+        # grayscale
         if frame.ndim == 3:
             frame = frame[:, :, 0]
 
@@ -77,26 +80,71 @@ def moses_code(video_path, nPC):
     cap.release()
 
     dataset = np.array(frames, dtype=np.float32)
+    return dataset
 
-    # remove média (fundo estático)
-    dataset -= dataset.mean(axis=0, keepdims=True)
 
-    # PCA
+def compute_pca(dataset, remove_mean=True):
+    """
+    Calcula o PCA e retorna:
+    - coeff  -> componentes principais (autovetores)
+    - score  -> projeção dos dados
+    - latent -> variância explicada
+    """
+    X = dataset.copy()
+
+    if remove_mean:
+        X -= X.mean(axis=0, keepdims=True)
+
     pca_model = PCA()
-    W = pca_model.fit_transform(dataset.T)     # score
-    H = pca_model.components_.T                # coeff
-    # V = pca_model.explained_variance_          # latent
-    
-    # usar apenas os primeiros PCs
-    mixtures = H[:, :nPC]
+    score_W = pca_model.fit_transform(X.T)
+    coeff_H = pca_model.components_.T
+    latent_V = pca_model.explained_variance_
 
-    # Blind source separation
+    return coeff_H, score_W, latent_V
+
+
+def run_cp_on_components(H, n_pc):
+    """
+    Executa o CP_alg sobre os n_pc primeiros componentes principais.
+    """
+    mixtures = H[:, :n_pc]
     unmixed, Wmix = CP_alg(mixtures)
-
-    # reorganização final
     unmixed = -np.fliplr(unmixed)
+    return unmixed, Wmix
 
+
+def get_num_components_for_variance(V, x):
+    V = np.asarray(V, dtype=np.float64).ravel()
+
+    if V.size == 0:
+        raise ValueError("V está vazio.")
+
+    if np.any(V < 0):
+        raise ValueError("Os autovalores em V devem ser não negativos.")
+
+    if x > 1:
+        x = x / 100.0
+
+    if not (0 < x <= 1):
+        raise ValueError("x deve estar em (0,1] ou em (0,100].")
+
+    explained_ratio = V / np.sum(V)
+    cumulative_ratio = np.cumsum(explained_ratio)
+
+    n_components = np.searchsorted(cumulative_ratio, x) + 1
+    return n_components
+    
+def la_pipeline(video_path, nPC):
+
+    dataset = load_grayscale_dataset(video_path)
+
+    H, W, V = compute_pca(dataset)
+
+    unmixed, Wmix = run_cp_on_components(H, nPC)
+    
     return unmixed
+
+
 
 def compute_fft(signal, fps):
     # número de amostras
@@ -207,99 +255,54 @@ def CP_alg(mixtures):
     return ys, W
 
 
-def plot_pc(unmixed, video_features, nPC: list, n_peaks_text = 5, w = 20, h = 15, save = False):
-    t = np.arange(video_features['frames']).reshape(-1, 1) / video_features['fps']
-    t_plot = np.asarray(t).ravel()
-    
-    fig, axes = plt.subplots(len(nPC), 3, figsize = (w, h), constrained_layout = True)
 
-    if len(nPC) == 1:
-        axes = np.expand_dims(axes, axis=0)
+def compute_fft_for_components(unmixed, fps, nPC: list):
+    fft_data = {}
 
-    cax = 0 # contador para a linha do axis
-    freqs_of_highest_peaks = {}
-    
     for i in nPC:
-        signal = unmixed[:, i]
-    
-        # FFT do componente i
-        freqs, fft_vals = compute_fft(unmixed[:, i], video_features['fps'])
-        freq_plot = np.asarray(freqs).ravel()
-        fft_signal = np.asarray(fft_vals).ravel()
+        freqs, fft_vals = compute_fft(unmixed[:, i], fps)
+
+        fft_data[i] = {
+            "f": np.asarray(freqs).ravel(),
+            "v": np.asarray(fft_vals).ravel(),
+            "signal": np.asarray(unmixed[:, i]).ravel()
+        }
+
+    return fft_data
+
+
+
+from scipy.signal import find_peaks
+import numpy as np
+
+
+def get_highest_peak_frequencies(fft_data, n_peaks=5):
+    peaks_info = {}
+
+    for comp_id, data in fft_data.items():
+        freq_plot = data["f"]
+        fft_vals = data["v"]
 
         psd = np.abs(fft_vals) ** 2
-        phase = np.angle(fft_vals) ** 2
 
-        # Manter apenas frequências positivas
         mask = freq_plot > 0
         freq_pos = freq_plot[mask]
         psd_pos = psd[mask]
-        phase_pos = phase[mask]
 
-        # Encontrar picos reais da PSD
         peak_indices, _ = find_peaks(psd_pos)
 
-        # Se não houver picos detectados, usa o maior valor global
         if len(peak_indices) == 0:
             peak_indices = np.array([np.argmax(psd_pos)])
 
-        # Ordenar os picos pela amplitude, do maior para o menor
         sorted_peak_indices = peak_indices[np.argsort(psd_pos[peak_indices])[::-1]]
+        top_peak_indices = sorted_peak_indices[:n_peaks]
 
-        # Selecionar os n primeiros
-        top_peak_indices = sorted_peak_indices[:n_peaks_text]
+        peaks_info[comp_id] = {
+            "highest_freq": float(freq_pos[top_peak_indices[0]]),
+            "highest_amp": float(psd_pos[top_peak_indices[0]]),
+            "top_freqs": freq_pos[top_peak_indices],
+            "top_amps": psd_pos[top_peak_indices],
+            "top_indices": top_peak_indices
+        }
 
-        # Montar texto
-        peak_lines = []
-        for idx in top_peak_indices:
-            peak_lines.append(f"freq: {freq_pos[idx]:.2f} Hz | amp: {psd_pos[idx]:.2f}")
-        peak_text = "\n".join(peak_lines)
-
-        # Montar saída
-        freqs_of_highest_peaks[i] = freq_pos[top_peak_indices[0]]
-        
-        # --- Source ---
-        ax = axes[cax, 0]
-        ax.plot(t_plot, signal, linewidth=1.5)
-        ax.set_title(f"Source {i}", fontsize=10)
-        ax.tick_params(labelsize=9)
-
-        # --- PSD ---
-        ax = axes[cax, 1]
-        ax.plot(freq_pos, psd_pos, linewidth=1.5, color="k")
-
-        # Marcar os picos selecionados
-        ax.plot(freq_pos[top_peak_indices], psd_pos[top_peak_indices], "ro", markersize=4)
-
-        # Texto centralizado no gráfico da PSD
-        ax.text(
-            0.5, 0.5, peak_text,
-            transform=ax.transAxes,
-            fontsize=9,
-            ha="left",
-            va="center",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8)
-        )
-
-        ax.set_title(f"PSD {i}", fontsize=10)
-        ax.tick_params(labelsize=9)
-
-        # --- Phase ---
-        ax = axes[cax, 2]
-        ax.plot(freq_pos, phase_pos, linewidth=1.5, color="k")
-        ax.set_title(f"Phase {i}", fontsize=10)
-        ax.tick_params(labelsize=9)
-
-        cax += 1
-        
-    # Labels finais
-    axes[-1, 0].set_xlabel("Time (s)")
-    axes[-1, 1].set_xlabel("Frequency (Hz)")
-
-    # plt.show()
-    # plt.tight_layout()
-    
-    if save:
-        plt.savefig('out/sfp.pdf', bbox_inches = 'tight')
-        
-    return freqs_of_highest_peaks
+    return peaks_info
