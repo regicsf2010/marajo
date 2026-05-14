@@ -108,9 +108,14 @@ def run_cp_on_components(H, n_pc):
     Executa o CP_alg sobre os n_pc primeiros componentes principais.
     """
     mixtures = H[:, :n_pc]
+    
+     # Blind source separation
     unmixed, Wmix = CP_alg(mixtures)
+    
+    Winvmix = np.fliplr(np.linalg.inv(Wmix))
+    
     unmixed = -np.fliplr(unmixed)
-    return unmixed, Wmix
+    return unmixed, Winvmix
 
 
 def get_num_components_for_variance(V, x):
@@ -140,9 +145,9 @@ def la_pipeline(video_path, nPC):
 
     H, W, V = compute_pca(dataset)
 
-    unmixed, Wmix = run_cp_on_components(H, nPC)
+    unmixed, Winvmix = run_cp_on_components(H, nPC)
     
-    return unmixed
+    return unmixed, Winvmix, W
 
 
 
