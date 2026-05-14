@@ -223,3 +223,56 @@ def plot_source_psd_phase(fft_data, peaks_info, video_features, nPC, w=20, h=15,
 
     if save:
         fig.savefig("out/sfp.pdf", bbox_inches="tight")
+        
+        
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def plot_mode_shapes(mode_shapes, nRows, nColumns, srcs, w=20, h=10, save=False):
+    numSrc = len(srcs)
+
+    # equivalente ao subplot(2, numSrc/2, ...)
+    nrows = 2
+    ncols = int(np.ceil(numSrc / 2))
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(w, h), constrained_layout=True)
+
+    # garante indexação simples
+    axes = np.asarray(axes).reshape(-1)
+
+    for i in range(numSrc):
+
+        ax = axes[i]
+
+        # MATLAB:
+        # S = mode_shapes(:,i)';
+        S = mode_shapes[:, i]
+
+        # MATLAB:
+        # reshape(S,nRows,nColumns)
+        img = S.reshape(nRows, nColumns)
+
+        # MATLAB:
+        # imagesc(...)
+        im = ax.imshow(img, aspect='auto')
+
+        # título
+        if srcs is not None:
+            ax.set_title(f"Mode Shape {srcs[i]}", fontsize=12)
+        else:
+            ax.set_title(f"Mode Shape {i}", fontsize=12)
+
+        # equivalente:
+        # set(gca,'visible','off')
+        ax.axis("off")
+
+        # colorbar
+        fig.colorbar(im, ax=ax)
+
+    # desliga eixos sobrando
+    for j in range(numSrc, len(axes)):
+        axes[j].axis("off")
+
+    if save:
+        fig.savefig("out/mode_shapes.pdf", bbox_inches="tight")

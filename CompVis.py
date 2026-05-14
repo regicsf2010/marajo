@@ -311,3 +311,42 @@ def get_highest_peak_frequencies(fft_data, n_peaks=5):
         }
 
     return peaks_info
+
+import numpy as np
+
+
+def compute_mode_shapes(Winvmix, W, numPC, srcs):
+    """
+    Calcula os mode shapes.
+
+    Equivalente MATLAB:
+    --------------------
+    mode_shapes = (Winvmix*W(:,1:numPC)')';
+    mode_shapes = mode_shapes(:,srcs);
+
+    Parâmetros
+    ----------
+    Winvmix : np.ndarray
+        Matriz de mistura estimada/inversa.
+    W : np.ndarray
+        Score do PCA.
+    numPC : int
+        Número de componentes principais usados.
+    srcs : list
+        Índices dos modos desejados (em Python começa em 0).
+
+    Retorna
+    -------
+    mode_shapes : np.ndarray
+        Mode shapes selecionados.
+    """
+
+    # equivalente a:
+    # (Winvmix*W(:,1:numPC)')'
+    mode_shapes = (Winvmix @ W[:, :numPC].T).T
+
+    # equivalente a:
+    # mode_shapes(:,srcs)
+    mode_shapes = mode_shapes[:, srcs]
+
+    return mode_shapes
