@@ -36,9 +36,11 @@ class SpectralFeatures:
     energy_concentration: float  # fração da energia total contida nos K maiores picos
 
 
-def _positive_band(fft: ComponentFFT, freq_min: float) -> tuple[np.ndarray, np.ndarray]:
+def _positive_band(
+    fft: ComponentFFT, freq_min: float, freq_max: float = float("inf")
+) -> tuple[np.ndarray, np.ndarray]:
     psd = np.abs(fft.values) ** 2
-    mask = fft.freqs > freq_min
+    mask = (fft.freqs > freq_min) & (fft.freqs <= freq_max)
     return fft.freqs[mask], psd[mask]
 
 
@@ -95,10 +97,11 @@ def highest_freq(freqs: np.ndarray, psd: np.ndarray) -> float:
 def spectral_features(
     fft: ComponentFFT,
     freq_min: float = 0.0,
+    freq_max: float = float("inf"),
     top_k: int = 5,
 ) -> SpectralFeatures:
-    """Calcula todas as features de um PSD; descarta DC (e opcionalmente baixas freqs)."""
-    freqs, psd = _positive_band(fft, freq_min)
+    """Calcula todas as features de um PSD; descarta DC (e opcionalmente baixas e altas freqs)."""
+    freqs, psd = _positive_band(fft, freq_min, freq_max)
     if freqs.size == 0:
         return SpectralFeatures(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
@@ -121,6 +124,7 @@ FEATURE_NAMES: list[str] = [f.name for f in fields(SpectralFeatures)]
 def video_features(
     fft_data: dict[int, ComponentFFT],
     freq_min: float = 0.0,
+    freq_max: float = float("inf"),
     top_k: int = 5,
     components: Iterable[int] | None = None,
 ) -> dict[str, float]:
@@ -138,7 +142,9 @@ def video_features(
 
     per_cp: dict[str, list[float]] = {name: [] for name in FEATURE_NAMES}
     for cp_id in components:
-        feats = spectral_features(fft_data[cp_id], freq_min=freq_min, top_k=top_k)
+        feats = spectral_features(
+            fft_data[cp_id], freq_min=freq_min, freq_max=freq_max, top_k=top_k
+        )
         for name in FEATURE_NAMES:
             per_cp[name].append(getattr(feats, name))
 

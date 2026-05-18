@@ -84,6 +84,9 @@ def analyse_trends(
     if use_bands:
         band_tuples = [(float(low), float(high)) for low, high in bands]
 
+    freq_max_cfg = config.modal.freq_max
+    effective_freq_max = float("inf") if freq_max_cfg is None else float(freq_max_cfg)
+
     features_per_video: dict[str, dict[str, float]] = {}
     for video_path, result in over_time_result.per_video.items():
         fft_data = (
@@ -99,7 +102,7 @@ def analyse_trends(
             features_per_video[video_path] = video_band_features(fft_data, band_tuples)
         else:
             features_per_video[video_path] = video_features(
-                fft_data, freq_min=freq_min, top_k=top_k
+                fft_data, freq_min=freq_min, freq_max=effective_freq_max, top_k=top_k
             )
 
     feature_names = list(next(iter(features_per_video.values())).keys())
