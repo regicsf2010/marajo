@@ -1,5 +1,11 @@
 from marajo.pipelines.single_video import SingleVideoResult, run_single_video
 from marajo.pipelines.over_time import CompactVideoResult, OverTimeResult, run_over_time
+from marajo.pipelines.trend_analysis import (
+    FeatureSeries,
+    FeatureTrend,
+    TrendAnalysisResult,
+    analyse_trends,
+)
 
 __all__ = [
     "SingleVideoResult",
@@ -7,4 +13,8 @@ __all__ = [
     "CompactVideoResult",
     "OverTimeResult",
     "run_over_time",
+    "FeatureSeries",
+    "FeatureTrend",
+    "TrendAnalysisResult",
+    "analyse_trends",
 ]

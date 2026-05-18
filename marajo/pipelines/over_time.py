@@ -23,6 +23,7 @@ import numpy as np
 from marajo.config import PipelineConfig, resolve_video_path
 from marajo.io.roi import ROI, load_rois
 from marajo.io.video import VideoInfo
+from marajo.modal.fft import ComponentFFT
 from marajo.modal.peaks import PeakInfo
 from marajo.pipelines.single_video import SingleVideoResult, analyse_preprocessed_video
 from marajo.preprocessing.video_prep import PreprocessConfig, preprocess_video
@@ -33,6 +34,7 @@ class CompactVideoResult:
     video_info: VideoInfo
     peaks_info: dict[int, PeakInfo]
     unmixed: Optional[np.ndarray] = None  # preservado apenas pra espectrograma sob demanda
+    fft_data: Optional[dict[int, ComponentFFT]] = None  # opcional pra análises post-hoc (features espectrais)
 
 
 @dataclass
@@ -87,6 +89,7 @@ def run_over_time(
     do_preprocess: bool = True,
     keep_full: bool = False,
     keep_unmixed_for: Optional[str] = None,
+    keep_fft_data: bool = False,
 ) -> OverTimeResult:
     """Roda análise temporal sobre os batches definidos em `config.batches`.
 
@@ -128,10 +131,12 @@ def run_over_time(
             per_video[original] = full
         else:
             unmixed = full.cp.unmixed.copy() if original == keep_unmixed_for else None
+            fft_data = full.fft_data if keep_fft_data else None
             per_video[original] = CompactVideoResult(
                 video_info=full.video_info,
                 peaks_info=full.peaks_info,
                 unmixed=unmixed,
+                fft_data=fft_data,
             )
             del full
             gc.collect()
