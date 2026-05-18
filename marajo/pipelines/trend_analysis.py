@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 from marajo.config import PipelineConfig
+from marajo.modal.damping import video_damping_features
 from marajo.modal.spectral_features import video_band_features, video_features
 from marajo.modal.trends import TrendResult, all_trend_tests
 from marajo.pipelines.over_time import CompactVideoResult, OverTimeResult
@@ -103,6 +104,10 @@ def analyse_trends(
         else:
             features_per_video[video_path] = video_features(
                 fft_data, freq_min=freq_min, freq_max=effective_freq_max, top_k=top_k
+            )
+        if config.modal.include_damping:
+            features_per_video[video_path].update(
+                video_damping_features(fft_data, freq_min=freq_min, freq_max=effective_freq_max)
             )
 
     feature_names = list(next(iter(features_per_video.values())).keys())

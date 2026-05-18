@@ -2,6 +2,8 @@ from marajo.modal.fft import ComponentFFT, compute_fft, compute_fft_for_componen
 from marajo.modal.peaks import PeakInfo, highest_peak_frequencies, top_n_peaks
 from marajo.modal.mode_shapes import compute_mode_shapes
 from marajo.modal.spectrogram import compute_spectrogram
+from marajo.modal.damping import damping_for_component, damping_ratio_at_peak, video_damping_features
+from marajo.modal.matching import align_to_reference, hungarian_match, mac_matrix, resize_modes
 from marajo.modal.spectral_features import (
     FEATURE_NAMES,
     SpectralFeatures,
@@ -21,6 +23,13 @@ __all__ = [
     "top_n_peaks",
     "compute_mode_shapes",
     "compute_spectrogram",
+    "damping_for_component",
+    "damping_ratio_at_peak",
+    "video_damping_features",
+    "align_to_reference",
+    "hungarian_match",
+    "mac_matrix",
+    "resize_modes",
     "FEATURE_NAMES",
     "SpectralFeatures",
     "band_features",
