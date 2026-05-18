@@ -6,6 +6,7 @@ from marajo.pipelines.trend_analysis import (
     TrendAnalysisResult,
     analyse_trends,
 )
+from marajo.pipelines.phase_based import analyse_phase_video, run_over_time_phase_based
 
 __all__ = [
     "SingleVideoResult",
@@ -17,4 +18,6 @@ __all__ = [
     "FeatureTrend",
     "TrendAnalysisResult",
     "analyse_trends",
+    "analyse_phase_video",
+    "run_over_time_phase_based",
 ]
