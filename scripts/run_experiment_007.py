@@ -18,6 +18,8 @@ Pipeline:
 from __future__ import annotations
 
 import argparse
+import csv
+import json
 import os
 import re
 import sys
@@ -199,6 +201,29 @@ def main() -> None:
     fig.tight_layout()
     fig.savefig(os.path.join(args.plots_dir, "pvalue_by_aligned_cp.png"), bbox_inches="tight")
     print(f"\nHeatmap salvo: {args.plots_dir}/pvalue_by_aligned_cp.png")
+
+    # Persiste resultados brutos
+    csv_path = os.path.join(args.plots_dir, "results.csv")
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+    json_path = os.path.join(args.plots_dir, "results.json")
+    with open(json_path, "w") as f:
+        json.dump({
+            "config_path": args.config,
+            "alpha": args.alpha,
+            "band": [band_low, band_high],
+            "target_rows": args.target_rows,
+            "target_cols": args.target_cols,
+            "reference_video": reference_path,
+            "mac_mean_min": float(min(mac_means)),
+            "mac_mean_median": float(sorted(mac_means)[len(mac_means) // 2]),
+            "mac_mean_max": float(max(mac_means)),
+            "rows": rows,
+        }, f, indent=2, default=float)
+    print(f"[dados brutos] {csv_path}")
+    print(f"[dados brutos] {json_path}")
 
 
 if __name__ == "__main__":

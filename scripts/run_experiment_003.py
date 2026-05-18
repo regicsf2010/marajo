@@ -11,6 +11,8 @@ Resolvido em `marajo.io.roi.resolve_roi`.
 from __future__ import annotations
 
 import argparse
+import csv
+import json
 import os
 import re
 import sys
@@ -88,6 +90,72 @@ def _format_detectors(result, alpha: float) -> str:
     return "\n".join(lines)
 
 
+def _save_raw_results(result, alpha: float, out_dir: str, config_path: str) -> None:
+    """Persiste resultados brutos em CSV (uma linha por feature × batch × teste) +
+    JSON com séries completas (valores e x por feature × batch).
+
+    O CSV serve pra leitura programática direta (pandas, R, Excel). O JSON guarda
+    os dados originais pra qualquer análise post-hoc sem reprocessar.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    # CSV: feature, batch, test, statistic, p_value, slope, significant
+    csv_path = os.path.join(out_dir, "results.csv")
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["feature", "batch", "test", "statistic", "p_value", "slope", "significant"])
+        for t in result.trends:
+            for test_name, tr in t.tests.items():
+                writer.writerow([
+                    t.feature, t.batch, test_name,
+                    f"{tr.statistic:.6f}", f"{tr.p_value:.6f}",
+                    f"{tr.slope:.6f}" if tr.slope is not None else "",
+                    "1" if tr.p_value < alpha else "0",
+                ])
+
+    # JSON: estrutura completa com séries originais
+    json_path = os.path.join(out_dir, "results.json")
+    payload = {
+        "config_path": config_path,
+        "alpha": alpha,
+        "freq_min": result.freq_min,
+        "top_k": result.top_k,
+        "feature_names": result.feature_names,
+        "series": {
+            feat: {
+                batch: {
+                    "x": series.x_by_batch.get(batch, []),
+                    "y": series.by_batch[batch],
+                }
+                for batch in series.by_batch
+            }
+            for feat, series in result.series_by_feature.items()
+        },
+        "tests": [
+            {
+                "feature": t.feature,
+                "batch": t.batch,
+                "values": t.values,
+                "x_values": t.x_values,
+                "tests": {
+                    name: {
+                        "statistic": tr.statistic,
+                        "p_value": tr.p_value,
+                        "slope": tr.slope,
+                    }
+                    for name, tr in t.tests.items()
+                },
+            }
+            for t in result.trends
+        ],
+    }
+    with open(json_path, "w") as f:
+        json.dump(payload, f, indent=2, default=float)
+
+    print(f"\n[dados brutos] {csv_path}")
+    print(f"[dados brutos] {json_path}")
+
+
 def main() -> None:
     args = parse_args()
     config = PipelineConfig.load(args.config)
@@ -121,6 +189,8 @@ def main() -> None:
     print(_format_table(result, args.alpha))
     print("\n## Detectores candidatos\n")
     print(_format_detectors(result, args.alpha))
+
+    _save_raw_results(result, args.alpha, args.plots_dir, args.config)
 
 
 if __name__ == "__main__":
