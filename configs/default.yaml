@@ -1,0 +1,52 @@
+# Configuração default do pipeline modular do Eduardo.
+# Espelha as constantes que apareciam hardcoded em main_single_video.ipynb e main_over_time.ipynb.
+
+preprocess:
+  num_frames: 800
+  fps: 240
+  scale: 0.2
+
+decomposition:
+  num_pcs: 10
+  variance_threshold: 0.90  # usado em main_pca pra decidir nPC automaticamente
+
+cp:
+  short_half_life: 1
+  long_half_life: 900000
+  max_mask_len: 50
+  n_mask_horizon: 10  # 'n' no CP_alg original
+
+modal:
+  n_peaks: 5
+  peak_min_freq: 0.5
+
+paths:
+  rois_json: rois/rois.json
+  out_dir: out/
+  # Raiz dos vídeos brutos. Paths em over_time_videos são relativos a este dir
+  # (caso sejam relativos; absolutos são respeitados como estão).
+  videos_root: /home/ygarasab/mestrado/tese/videos_caseiro_muda_acai
+
+# Batches do experimento de aquisição.
+# february: muda NÃO regada (Período 1, 07-14/02) — condição de estresse hídrico.
+# april:    muda regada regularmente (Período 2, 03-10/04) — controle.
+# A interpretação fisiológica (stressed vs healthy) fica nos plots/README.
+batches:
+  february:
+    - 20260207/240/VID_20260207_081701560.mp4
+    - 20260208/240/VID_20260208_071551134.mp4
+    - 20260209/240/VID_20260209_075208490.mp4
+    - 20260210/240/VID_20260210_073714886.mp4
+    - 20260211/240/VID_20260211_072715346.mp4
+    - 20260212/240/VID_20260212_072409310.mp4
+    - 20260213/240/VID_20260213_073426768.mp4
+    - 20260214/240/VID_20260214_040340493.mp4
+  april:
+    - 20260403/240/VID_20260403_093930290.mp4
+    - 20260404/240/VID_20260404_083559178.mp4
+    - 20260405/240/VID_20260405_081814881.mp4
+    - 20260406/240/VID_20260406_073657130.mp4
+    - 20260407/240/VID_20260407_072634451.mp4
+    - 20260408/240/VID_20260408_073141468.mp4
+    - 20260409/240/VID_20260409_062613791.mp4
+    - 20260410/240/VID_20260410_072958947.mp4

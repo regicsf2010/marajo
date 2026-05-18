@@ -209,3 +209,7 @@ __marimo__/
 # Reginaldo
 videos/
 gd_server/
+
+# Eduardo
+out/
+.venv/
