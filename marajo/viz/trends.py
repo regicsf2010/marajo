@@ -40,9 +40,13 @@ def plot_feature_trends(
         series = result.series_by_feature[feat]
         annotations: list[str] = []
         for batch, values in series.by_batch.items():
-            days = np.arange(1, len(values) + 1)
+            x_vals = series.x_by_batch.get(batch, list(range(len(values))))
+            # Normaliza eixo X pra "dia ordinal" do batch (1..n_unique_days)
+            unique_sorted = sorted(set(x_vals))
+            day_index = {d: i + 1 for i, d in enumerate(unique_sorted)}
+            days = np.asarray([day_index[v] for v in x_vals])
             color = _BATCH_COLOR.get(batch, None)
-            ax.plot(days, values, marker="o", color=color, label=batch)
+            ax.plot(days, values, marker="o", linestyle="none", color=color, label=batch, alpha=0.7)
 
             trend = result.trend(feat, batch)
             mk = trend.tests["mann_kendall"]

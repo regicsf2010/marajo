@@ -30,25 +30,44 @@ class TrendResult:
         return self.p_value < alpha
 
 
-def mann_kendall(values: Sequence[float]) -> TrendResult:
-    """Mann-Kendall: testa monotonicidade. tau ∈ [-1, 1]; sinal indica direção."""
-    x = np.asarray(values, dtype=float)
-    n = len(x)
+def _default_x(values: Sequence[float]) -> np.ndarray:
+    return np.arange(len(values), dtype=float)
+
+
+def mann_kendall(values: Sequence[float], x: Sequence[float] | None = None) -> TrendResult:
+    """Mann-Kendall: testa monotonicidade. tau ∈ [-1, 1]; sinal indica direção.
+
+    Quando `x` é fornecido e contém pares (x_i, x_j) com x_i == x_j (ex.: 4 ângulos
+    do mesmo dia), esses pares são IGNORADOS na soma — não dá pra inferir
+    monotonicidade entre amostras que compartilham o mesmo instante temporal.
+    A variância é ajustada pelo número efetivo de pares válidos.
+    """
+    y = np.asarray(values, dtype=float)
+    x_arr = _default_x(values) if x is None else np.asarray(x, dtype=float)
+    n = len(y)
     if n < 3:
         return TrendResult(test="mann_kendall", statistic=0.0, p_value=1.0)
 
-    # S = soma de sinais
+    # Soma de sinais, ignorando pares com mesmo x.
     S = 0
+    n_pairs = 0
     for i in range(n - 1):
-        S += int(np.sum(np.sign(x[i + 1 :] - x[i])))
+        for j in range(i + 1, n):
+            if x_arr[i] == x_arr[j]:
+                continue
+            S += int(np.sign(y[j] - y[i]))
+            n_pairs += 1
 
-    # Variância (sem ajuste de ties — ok pra floats sem repetição exata).
-    var_s = n * (n - 1) * (2 * n + 5) / 18.0
+    if n_pairs == 0:
+        return TrendResult(test="mann_kendall", statistic=0.0, p_value=1.0)
 
-    # Tau de Kendall.
-    tau = 2.0 * S / (n * (n - 1))
+    # Variância: aproximação por nº de pares válidos.
+    # (Para pares 'ignorados' por igualdade de x, eles funcionam como ties em x,
+    # então a variância efetiva escala com n_pairs.)
+    var_s = n_pairs * (2 * n + 5) / 9.0
 
-    # Z com correção de continuidade.
+    tau = S / n_pairs
+
     if S > 0:
         z = (S - 1) / math.sqrt(var_s)
     elif S < 0:
@@ -60,23 +79,29 @@ def mann_kendall(values: Sequence[float]) -> TrendResult:
     return TrendResult(test="mann_kendall", statistic=float(tau), p_value=float(p))
 
 
-def spearman_trend(values: Sequence[float]) -> TrendResult:
-    """Correlação de Spearman entre o índice (dia) e o valor."""
-    x = np.arange(len(values))
+def spearman_trend(values: Sequence[float], x: Sequence[float] | None = None) -> TrendResult:
+    """Correlação de Spearman entre x (default: índice) e o valor.
+
+    Spearman lida nativamente com ties em x (média dos ranks).
+    """
     y = np.asarray(values, dtype=float)
+    x_arr = _default_x(values) if x is None else np.asarray(x, dtype=float)
     if len(y) < 3:
         return TrendResult(test="spearman", statistic=0.0, p_value=1.0)
-    rho, p = stats.spearmanr(x, y)
+    rho, p = stats.spearmanr(x_arr, y)
     return TrendResult(test="spearman", statistic=float(rho), p_value=float(p))
 
 
-def linear_trend(values: Sequence[float]) -> TrendResult:
-    """Regressão linear; statistic = slope, p_value do slope ≠ 0."""
-    x = np.arange(len(values))
+def linear_trend(values: Sequence[float], x: Sequence[float] | None = None) -> TrendResult:
+    """Regressão linear; statistic = slope, p_value do slope ≠ 0.
+
+    Aceita x explícito (default: índice). Funciona com valores repetidos em x.
+    """
     y = np.asarray(values, dtype=float)
+    x_arr = _default_x(values) if x is None else np.asarray(x, dtype=float)
     if len(y) < 3:
         return TrendResult(test="linear", statistic=0.0, p_value=1.0, slope=0.0)
-    result = stats.linregress(x, y)
+    result = stats.linregress(x_arr, y)
     return TrendResult(
         test="linear",
         statistic=float(result.slope),
@@ -85,9 +110,12 @@ def linear_trend(values: Sequence[float]) -> TrendResult:
     )
 
 
-def all_trend_tests(values: Sequence[float]) -> dict[str, TrendResult]:
+def all_trend_tests(
+    values: Sequence[float],
+    x: Sequence[float] | None = None,
+) -> dict[str, TrendResult]:
     return {
-        "mann_kendall": mann_kendall(values),
-        "spearman": spearman_trend(values),
-        "linear": linear_trend(values),
+        "mann_kendall": mann_kendall(values, x=x),
+        "spearman": spearman_trend(values, x=x),
+        "linear": linear_trend(values, x=x),
     }

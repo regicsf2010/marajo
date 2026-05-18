@@ -5,7 +5,9 @@ from marajo.modal.spectrogram import compute_spectrogram
 from marajo.modal.spectral_features import (
     FEATURE_NAMES,
     SpectralFeatures,
+    band_features,
     spectral_features,
+    video_band_features,
     video_features,
 )
 from marajo.modal.trends import TrendResult, all_trend_tests, linear_trend, mann_kendall, spearman_trend
@@ -21,7 +23,9 @@ __all__ = [
     "compute_spectrogram",
     "FEATURE_NAMES",
     "SpectralFeatures",
+    "band_features",
     "spectral_features",
+    "video_band_features",
     "video_features",
     "TrendResult",
     "all_trend_tests",

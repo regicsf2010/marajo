@@ -36,6 +36,7 @@ class CPConfig:
 class ModalConfig:
     n_peaks: int = 5
     peak_min_freq: float = 0.5
+    bands: list[list[float]] = field(default_factory=list)  # opcional: [[low, high], ...] em Hz
 
 
 @dataclass

@@ -148,3 +148,80 @@ def video_features(
         aggregated[f"{name}_mean"] = float(np.mean(arr))
         aggregated[f"{name}_median"] = float(np.median(arr))
     return aggregated
+
+
+def _band_mask(freqs: np.ndarray, band_low: float, band_high: float) -> np.ndarray:
+    return (freqs >= band_low) & (freqs < band_high)
+
+
+def band_features(fft: ComponentFFT, band_low: float, band_high: float) -> dict[str, float]:
+    """Features dentro de uma banda específica [band_low, band_high) em Hz.
+
+    Retorna:
+      - `energy`: soma do PSD dentro da banda (absoluta).
+      - `energy_fraction`: energia da banda / energia total (DC excluído).
+      - `peak_freq`: freq do maior pico local dentro da banda (NaN se vazia).
+      - `centroid`: centroide espectral local da banda (NaN se vazia).
+    """
+    psd_total = np.abs(fft.values) ** 2
+    total_positive = float(np.sum(psd_total[fft.freqs > 0]))
+    if total_positive <= 0:
+        return {"energy": 0.0, "energy_fraction": 0.0, "peak_freq": float("nan"), "centroid": float("nan")}
+
+    mask = _band_mask(fft.freqs, band_low, band_high)
+    freqs_b = fft.freqs[mask]
+    psd_b = psd_total[mask]
+
+    if freqs_b.size == 0 or np.sum(psd_b) <= 0:
+        return {"energy": 0.0, "energy_fraction": 0.0, "peak_freq": float("nan"), "centroid": float("nan")}
+
+    energy = float(np.sum(psd_b))
+    fraction = energy / total_positive
+
+    peak_idx = _top_k_peak_indices(psd_b, 1)
+    peak_f = float(freqs_b[peak_idx[0]])
+    centroid_local = spectral_centroid(freqs_b, psd_b)
+
+    return {
+        "energy": energy,
+        "energy_fraction": fraction,
+        "peak_freq": peak_f,
+        "centroid": centroid_local,
+    }
+
+
+def video_band_features(
+    fft_data: dict[int, ComponentFFT],
+    bands: list[tuple[float, float]],
+    components: Iterable[int] | None = None,
+) -> dict[str, float]:
+    """Computa band_features pra cada banda × CP, agrega sobre CPs (mean/median).
+
+    Os nomes ficam `{feature}_{low}_{high}_{mean|median}` (Hz com 1 decimal).
+    NaN é tratado como missing (usa nanmean/nanmedian).
+    """
+    if components is None:
+        components = list(fft_data.keys())
+
+    per_band_per_cp: dict[str, list[float]] = {}
+    feature_keys = ["energy", "energy_fraction", "peak_freq", "centroid"]
+    for low, high in bands:
+        for fk in feature_keys:
+            key = f"{fk}_{low:.1f}_{high:.1f}"
+            per_band_per_cp[key] = []
+
+    for cp_id in components:
+        for low, high in bands:
+            feats = band_features(fft_data[cp_id], low, high)
+            for fk in feature_keys:
+                per_band_per_cp[f"{fk}_{low:.1f}_{high:.1f}"].append(feats[fk])
+
+    aggregated: dict[str, float] = {}
+    for key, vals in per_band_per_cp.items():
+        arr = np.asarray(vals, dtype=float)
+        with np.errstate(all="ignore"):
+            mean_val = float(np.nanmean(arr)) if np.any(~np.isnan(arr)) else 0.0
+            median_val = float(np.nanmedian(arr)) if np.any(~np.isnan(arr)) else 0.0
+        aggregated[f"{key}_mean"] = mean_val
+        aggregated[f"{key}_median"] = median_val
+    return aggregated

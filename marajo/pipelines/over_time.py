@@ -21,7 +21,7 @@ from typing import Optional
 import numpy as np
 
 from marajo.config import PipelineConfig, resolve_video_path
-from marajo.io.roi import ROI, load_rois
+from marajo.io.roi import ROI, load_rois, resolve_roi
 from marajo.io.video import VideoInfo
 from marajo.modal.fft import ComponentFFT
 from marajo.modal.peaks import PeakInfo
@@ -68,7 +68,7 @@ def preprocess_batch(
     for path in video_paths:
         name = os.path.basename(path)
         out_path = os.path.join(out_dir, name)
-        roi = rois.get(name)
+        roi = resolve_roi(path, rois)
         if skip_if_exists and os.path.exists(out_path):
             if log:
                 print(f"{path} skip (já pré-processado)")

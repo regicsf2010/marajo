@@ -49,6 +49,30 @@ def get_roi_for_video(video_path: str, json_path: str | Path = "rois/rois.json")
     return load_rois(json_path).get(os.path.basename(video_path))
 
 
+def resolve_roi(video_path: str, rois: dict[str, ROI]) -> Optional[ROI]:
+    """Resolve ROI com fallback: se o basename não tem ROI, reusa a de qualquer
+    outro vídeo do mesmo diretório pai (mesmo dia) que tenha ROI anotada.
+
+    Premissa: a câmera fica no tripé entre as 4 capturas de um dia, então a ROI
+    do "principal" serve geometricamente pros outros 3 ângulos do mesmo dia.
+    """
+    name = os.path.basename(video_path)
+    if name in rois:
+        return rois[name]
+
+    parent = os.path.dirname(video_path)
+    if not parent or not os.path.isdir(parent):
+        return None
+
+    for sibling in sorted(os.listdir(parent)):
+        if sibling == name:
+            continue
+        if sibling in rois:
+            return rois[sibling]
+
+    return None
+
+
 def _get_screen_size() -> tuple[int, int]:
     import tkinter as tk
 
