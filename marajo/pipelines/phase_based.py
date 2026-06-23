@@ -85,11 +85,8 @@ def run_over_time_phase_based(
     phase_cfg = phase_config or PhaseConfig()
     os.makedirs(cache_dir, exist_ok=True)
 
-    batches: dict[str, list[str]] = {
-        "february": list(config.batches.february),
-        "april": list(config.batches.april),
-    }
-    video_paths = batches["february"] + batches["april"]
+    batches: dict[str, list[str]] = {name: list(vids) for name, vids in config.batches.items()}
+    video_paths = [p for vids in batches.values() for p in vids]
     if not video_paths:
         raise ValueError("Nenhum vídeo definido em config.batches.")
 

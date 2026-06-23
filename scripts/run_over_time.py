@@ -41,7 +41,7 @@ def main() -> None:
 
     keep_unmixed_for = None
     if args.spectrogram_video_idx is not None:
-        all_videos = config.batches.february + config.batches.april
+        all_videos = [p for _, p in config.all_videos()]
         keep_unmixed_for = all_videos[args.spectrogram_video_idx]
 
     result = run_over_time(

@@ -55,17 +55,19 @@ def resolve_video_path(path: str, videos_root: str) -> str:
     return os.path.join(videos_root, path)
 
 
-@dataclass
-class BatchesConfig:
-    """Batches do experimento de aquisição.
+class Batches(dict):
+    """Mapeamento ordenado `batch_name -> lista de paths`, com qualquer nome de batch.
 
-    Nomes são neutros temporais (mês de captura), sem pressupor o efeito esperado.
-    Convenção: february = sem rega; april = regada regularmente. A interpretação
-    fisiológica (stressed vs healthy) fica nos plots/README, não no schema.
+    Os dois primeiros datasets usavam `february`/`april`; campanhas novas usam nomes
+    arbitrários (ex.: `control_m`, `stressed_n`). Pra não quebrar scripts antigos que
+    acessam `config.batches.february`/`.april` como atributo, o acesso por atributo é
+    suportado: retorna a lista do batch, ou `[]` se ele não existir nesta config.
     """
 
-    february: list[str] = field(default_factory=list)
-    april: list[str] = field(default_factory=list)
+    def __getattr__(self, name: str) -> list[str]:
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)  # não engolir dunders (copy/pickle/etc.)
+        return self.get(name, [])
 
 
 @dataclass
@@ -75,13 +77,16 @@ class PipelineConfig:
     cp: CPConfig = field(default_factory=CPConfig)
     modal: ModalConfig = field(default_factory=ModalConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
-    batches: BatchesConfig = field(default_factory=BatchesConfig)
+    batches: Batches = field(default_factory=Batches)
+
+    def __post_init__(self) -> None:
+        # YAML carrega `batches` como dict simples; coage pro tipo com acesso por atributo.
+        if not isinstance(self.batches, Batches):
+            self.batches = Batches(self.batches or {})
 
     def all_videos(self) -> list[tuple[str, str]]:
-        """Retorna [(batch_name, video_path), ...] na ordem february → april."""
-        return [("february", p) for p in self.batches.february] + [
-            ("april", p) for p in self.batches.april
-        ]
+        """Retorna [(batch_name, video_path), ...] na ordem de declaração dos batches."""
+        return [(name, p) for name, vids in self.batches.items() for p in vids]
 
     @classmethod
     def load(cls, path: str | Path) -> "PipelineConfig":
