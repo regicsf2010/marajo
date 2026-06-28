@@ -1,0 +1,29 @@
+# Smoke test do 011: 1 vídeo de cada batch só.
+preprocess:
+  num_frames: 600
+  fps: 60
+  scale: 0.2
+decomposition:
+  num_pcs: 10
+  variance_threshold: 0.90
+cp:
+  short_half_life: 1
+  long_half_life: 900000
+  max_mask_len: 50
+  n_mask_horizon: 10
+modal:
+  n_peaks: 5
+  peak_min_freq: 0.5
+  bands:
+    - [0.5, 2.0]
+    - [2.0, 5.0]
+    - [0.5, 5.0]
+paths:
+  rois_json: rois/rois.json
+  out_dir: out/
+  videos_root: /home/ygarasab/mestrado/tese/videos_caseiro_muda_acai
+batches:
+  february:
+    - 20260207/60/VID_20260207_082108999.mp4
+  april:
+    - 20260403/60/VID_20260403_094206749_DOLBY.mp4
