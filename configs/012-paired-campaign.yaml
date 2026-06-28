@@ -36,7 +36,7 @@ modal:
 paths:
   rois_json: rois/rois.json
   out_dir: out/
-  videos_root: /home/ygarasab/mestrado/tese/3_camp
+  videos_root: /home/ygarasab/mestrado/tese/videos_caseiro_muda_acai/3_camp
 
 batches:
   control_m:

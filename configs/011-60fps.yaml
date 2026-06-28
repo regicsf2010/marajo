@@ -40,7 +40,7 @@ modal:
 paths:
   rois_json: rois/rois.json
   out_dir: out/
-  videos_root: /home/ygarasab/mestrado/tese/videos_caseiro_muda_acai
+  videos_root: /home/ygarasab/mestrado/tese/videos_caseiro_muda_acai/1_camp
 
 batches:
   february:
