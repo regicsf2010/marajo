@@ -32,7 +32,7 @@ def pre_processing(in_video_path, out_video_path, num_frames, fps = None, scale 
 
     width = int(base_w * scale)
     height = int(base_h * scale)
-    
+        
     fourcc = cv.VideoWriter_fourcc(*"mp4v")
     out = cv.VideoWriter(out_video_path, fourcc, fps, (width, height), isColor = False)
     
@@ -48,7 +48,7 @@ def pre_processing(in_video_path, out_video_path, num_frames, fps = None, scale 
         
         if roi is not None:
             gray = gray[y : y + h, x : x + w] # recorta somente cena de interesse, por enquanto esse passo é manual
-        
+            
         gray_small = cv.resize(gray, (width, height), interpolation = cv.INTER_AREA)
         out.write(gray_small)
         count += 1

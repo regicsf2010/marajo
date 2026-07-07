@@ -100,17 +100,16 @@ def select_roi(video_path, max_w=800, max_h=800):
 
 def annotate_and_save_roi(video_path, json_path="rois/rois.json", overwrite=False):
     rois_data = load_rois(json_path)
-    video_name = os.path.basename(video_path)
-
-    if video_name in rois_data and not overwrite:
-        return rois_data[video_name]
+    
+    if video_path in rois_data and not overwrite:
+        return rois_data[video_path]
 
     roi = select_roi(video_path)
 
     if roi is None:
         return None
 
-    rois_data[video_name] = roi
+    rois_data[video_path] = roi
     save_rois(rois_data, json_path)
 
     return roi
