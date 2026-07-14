@@ -19,7 +19,7 @@ def plot_signal(signal, save = False, w = 19, h = 8):
     plt.tight_layout()
     
     if save:
-        plt.savefig('out/signal.png', bbox_inches = 'tight')
+        plt.savefig('../outputs/signal.png', bbox_inches = 'tight')
         
     
 def plot_signals(signals, names, save = False, w = 19, h = 8):
@@ -43,7 +43,7 @@ def plot_signals(signals, names, save = False, w = 19, h = 8):
     plt.tight_layout()
     
     if save:
-        plt.savefig('out/signal.png', bbox_inches = 'tight')
+        plt.savefig('../outputs/signals.png', bbox_inches = 'tight')
         
         
 def plot_freq(freqs, fft_vals, save = False, w = 19, h = 8):
@@ -62,7 +62,7 @@ def plot_freq(freqs, fft_vals, save = False, w = 19, h = 8):
     plt.tight_layout()
     
     if save:
-        plt.savefig('out/frequency.png', bbox_inches = 'tight')
+        plt.savefig('../outputs/frequency.png', bbox_inches = 'tight')
         
 def plot_freqs(freqs, fft_vals, names, save = False, w = 19, h = 8):
     
@@ -83,7 +83,7 @@ def plot_freqs(freqs, fft_vals, names, save = False, w = 19, h = 8):
     plt.tight_layout()
     
     if save:
-        plt.savefig('out/frequency.png', bbox_inches = 'tight')
+        plt.savefig('../outputs/frequencies.png', bbox_inches = 'tight')
         
         
 
@@ -222,13 +222,9 @@ def plot_source_psd_phase(fft_data, peaks_info, video_features, nPC, w=20, h=15,
     axes[-1, 2].set_xlabel("Frequency (Hz)")
 
     if save:
-        fig.savefig("out/sfp.pdf", bbox_inches="tight")
+        fig.savefig("../outputs/sfp.pdf", bbox_inches="tight")
         
         
-import numpy as np
-import matplotlib.pyplot as plt
-
-
 def plot_mode_shapes(mode_shapes, nRows, nColumns, srcs, w=20, h=10, save=False):
     numSrc = len(srcs)
 
@@ -275,4 +271,4 @@ def plot_mode_shapes(mode_shapes, nRows, nColumns, srcs, w=20, h=10, save=False)
         axes[j].axis("off")
 
     if save:
-        fig.savefig("out/mode_shapes.pdf", bbox_inches="tight")
+        fig.savefig("../outputs/mode_shapes.pdf", bbox_inches="tight")

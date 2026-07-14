@@ -3,6 +3,50 @@ import tkinter as tk
 import numpy as np
 import os
 import json
+from pathlib import Path
+
+def load_rois(json_path: str = "rois/rois.json") -> dict:
+    """
+    Carrega as ROIs armazenadas em um arquivo JSON.
+
+    Parameters
+    ----------
+    json_path : str, optional
+        Caminho para o arquivo JSON.
+
+    Returns
+    -------
+    dict
+        Dicionário contendo as ROIs.
+
+    Raises
+    ------
+    FileNotFoundError
+        Se o arquivo não existir.
+    ValueError
+        Se o conteúdo do JSON for inválido.
+    """
+
+    json_file = Path(json_path)
+
+    if not json_file.is_file():
+        raise FileNotFoundError(
+            f"Arquivo de ROIs não encontrado: '{json_file}'."
+        )
+
+    try:
+        with json_file.open("r", encoding="utf-8") as f:
+            return json.load(f)
+
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"O arquivo '{json_file}' não contém um JSON válido."
+        ) from e
+
+
+def save_rois(rois_data, json_path="rois/rois.json"):
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(rois_data, f, indent=2, ensure_ascii=False)
 
 
 def get_screen_size():
@@ -12,19 +56,8 @@ def get_screen_size():
     screen_h = root.winfo_screenheight()
     root.destroy()
     return screen_w, screen_h
-
-def load_rois(json_path="rois/rois.json"):
-    if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def save_rois(rois_data, json_path="rois/rois.json"):
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(rois_data, f, indent=2, ensure_ascii=False)
-
-
+        
+        
 def get_first_frame(video_path):
     cap = cv.VideoCapture(video_path)
     ret, frame = cap.read()
