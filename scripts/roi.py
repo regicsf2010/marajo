@@ -5,7 +5,7 @@ import os
 import json
 from pathlib import Path
 
-def load_rois(json_path: str = "rois/rois.json") -> dict:
+def load_rois(json_path: str = "../rois/rois.json") -> dict:
     """
     Carrega as ROIs armazenadas em um arquivo JSON.
 
@@ -44,9 +44,15 @@ def load_rois(json_path: str = "rois/rois.json") -> dict:
         ) from e
 
 
-def save_rois(rois_data, json_path="rois/rois.json"):
+def save_rois(rois_data, json_path="../rois/rois.json"):
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(rois_data, f, indent=2, ensure_ascii=False)
+
+
+def get_roi_from_video(video_name, json_path="../rois/rois.json"):
+    rois_data = load_rois(json_path)
+    video_name = os.path.basename(video_name)
+    return rois_data.get(video_name)
 
 
 def get_screen_size():
@@ -131,24 +137,22 @@ def select_roi(video_path, max_w=800, max_h=800):
     return selected_roi if confirmed else None
 
 
-def annotate_and_save_roi(video_path, json_path="rois/rois.json", overwrite=False):
-    rois_data = load_rois(json_path)
+def annotate_and_save_roi(video_path, json_path="../rois/rois.json", overwrite=False):
     
-    if video_path in rois_data and not overwrite:
-        return rois_data[video_path]
+    rois_data = load_rois(json_path)
+    video_name = video_path.split("/")[-1]    
+
+    if video_name in rois_data and not overwrite:
+        return rois_data[video_name]
 
     roi = select_roi(video_path)
 
     if roi is None:
         return None
-
-    rois_data[video_path] = roi
+    
+    rois_data[video_name] = roi
     save_rois(rois_data, json_path)
 
     return roi
 
 
-def get_roi_for_video(video_path, json_path="rois/rois.json"):
-    rois_data = load_rois(json_path)
-    video_name = os.path.basename(video_path)
-    return rois_data.get(video_name)
