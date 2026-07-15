@@ -113,11 +113,11 @@ def pre_processing(
             if not ret:
                 break
 
-            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-
             if roi is not None:
                 x, y, w, h = roi
-                gray = gray[y : y + h, x : x + w]
+                frame = frame[y : y + h, x : x + w]
+
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
             gray_small = cv.resize(
                 gray,
