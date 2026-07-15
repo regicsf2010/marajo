@@ -82,5 +82,5 @@ def get_num_components_for_variance(V, x):
     cumulative_ratio = np.cumsum(explained_ratio)
 
     n_components = np.searchsorted(cumulative_ratio, x) + 1
-    return n_components
+    return int(n_components)
 
