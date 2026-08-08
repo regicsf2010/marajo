@@ -79,11 +79,12 @@ videos/
 2. Seleção da região de interesse (ROI).
 3. Conversão para escala de cinza.
 4. Redução da resolução.
-5. Organização dos pixels em séries temporais.
-6. PCA.
-7. Blind Source Separation (CP-LA).
-8. FFT/PSD.
-9. Extração de frequências dominantes.
+5. Diminuição do número de frames.
+6. Organização dos pixels em séries temporais.
+7. PCA.
+8. Blind Source Separation (CP-LA).
+9. FFT/PSD.
+10. Extração de frequências dominantes.
 
 ## Saídas
 
