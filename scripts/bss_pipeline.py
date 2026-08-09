@@ -29,7 +29,7 @@ def run_pipeline(
         Uma tupla contendo:
         - sinais separados (unmixed);
         - matriz inversa de mistura (Winvmix);
-        - componentes principais (W).
+        - dados originais projetados nos componentes principais (W).
 
     Raises
     ------
