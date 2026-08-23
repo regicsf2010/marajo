@@ -51,7 +51,7 @@ def run_pipeline(
     # shape: 
     #        nº de pixels originais, 
     #        nº de autovetores = nº de frames originais
-    return unmixed, Winvmix, W 
+    return unmixed, Winvmix, W, H 
 
 
 def load_grayscale_dataset(video_path: str) -> np.ndarray:

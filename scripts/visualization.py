@@ -154,7 +154,7 @@ def plot_pca_eigenvalues_with_threshold(V, x, w = 15, h = 8):
     return n_components
 
 
-def plot_source_psd_phase(fft_data, peaks_info, video_features, nPC, w=20, h=15, save=False):
+def plot_source_psd_phase(fft_data, peaks_info, video_features, nPC, w=20, h=15, save=False, name="sfp"):
 
     t = np.arange(video_features["frames"]) / video_features["fps"]
     t_plot = np.asarray(t).ravel()
@@ -222,7 +222,7 @@ def plot_source_psd_phase(fft_data, peaks_info, video_features, nPC, w=20, h=15,
     axes[-1, 2].set_xlabel("Frequency (Hz)")
 
     if save:
-        fig.savefig("../outputs/sfp.pdf", bbox_inches="tight")
+        fig.savefig(f"../outputs/{name}.pdf", bbox_inches="tight")
         
         
 def plot_mode_shapes(mode_shapes, nRows, nColumns, srcs, w=20, h=10, save=False):
