@@ -4,6 +4,7 @@ import subprocess
 import json
 from scipy.signal import find_peaks
 from pathlib import Path
+from datetime import datetime, timedelta
 
 def get_video_info(video_path: str) -> dict:
     """
@@ -402,3 +403,117 @@ def create_video_grid(
         cap.release()
 
     writer.release()
+    
+def get_video_paths(base_dir: str | Path, start_date: str, end_date: str, plant_id: int, periods: tuple[str, ...] = ("m", "n")) -> list[Path]:
+    """
+    Retorna os vídeos encontrados entre start_date e end_date
+    para uma determinada planta, considerando manhã (m) e noite (n).
+
+    Estrutura esperada:
+
+        base_dir/
+            YYYYMMDD/
+                YYYYMMDD_<plant_id>/
+                    m/
+                        *.mp4
+                    n/
+                        *.mp4
+
+    Parameters
+    ----------
+    base_dir : str | Path
+        Diretório onde estão armazenadas as datas.
+        Ex.: videos/camp_3
+
+    start_date : str
+        Data inicial no formato DD/MM/YYYY.
+
+    end_date : str
+        Data final no formato DD/MM/YYYY.
+
+    plant_id : int
+        Identificador da planta.
+
+    Returns
+    -------
+    list[Path]
+        Lista ordenada contendo os caminhos dos vídeos encontrados.
+    """
+
+    base_dir = Path(base_dir)
+
+    start = datetime.strptime(start_date, "%d/%m/%Y").date()
+
+    end = datetime.strptime(end_date, "%d/%m/%Y").date()
+
+    if start > end:
+        raise ValueError("A data inicial deve ser anterior ou igual à data final.")
+
+    video_paths = []
+
+    current_date = start
+
+    while current_date <= end:
+
+        date_str = current_date.strftime("%Y%m%d")
+
+        plant_dir = (base_dir / date_str / f"{date_str}_{plant_id}")
+
+        # Procura manhã e noite
+        for period in periods:
+
+            period_dir = plant_dir / period
+
+            if not period_dir.is_dir():
+                continue
+
+            videos = sorted(period_dir.glob("*.mp4"))
+
+            video_paths.extend(videos)
+
+        current_date += timedelta(days=1)
+
+    return video_paths
+
+def get_dominant_source(peaks_info, frequency_threshold=1.0):
+    """
+    Retorna a fonte com maior amplitude entre aquelas cuja
+    frequência é superior ao limiar especificado.
+
+    Parameters
+    ----------
+    peaks_info : dict
+        Dicionário contendo as informações dos picos de cada fonte.
+        Cada entrada deve possuir as chaves:
+        'highest_freq' e 'highest_amp'.
+
+    frequency_threshold : float, optional
+        Limiar mínimo de frequência, em Hz.
+        Default: 1.0.
+
+    Returns
+    -------
+    amplitude : float
+        Amplitude da fonte selecionada.
+
+    frequency : float
+        Frequência da fonte selecionada, em Hz.
+
+    source
+        Identificador da fonte selecionada.
+    """
+
+    amplitude = 0
+    frequency = 0
+    source = None
+
+    for k, v in peaks_info.items():
+        if (
+            v["highest_freq"] > frequency_threshold
+            and v["highest_amp"] > amplitude
+        ):
+            amplitude = v["highest_amp"]
+            frequency = v["highest_freq"]
+            source = k
+
+    return amplitude, frequency, source
