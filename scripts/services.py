@@ -133,9 +133,12 @@ def compute_source_spatial_maps(W, mixtures, unmixed, n_pc):
     # X.T ≈ W_selected @ mixtures.T
     #
     # mixtures ≈ unmixed @ A
+    # mixtures.T ≈ A.T @ unmixed.T
     #
     # X.T ≈ W_selected @ A.T @ unmixed.T
     #
+    # Queremos apenas o spatial maps (e não os pixels originais)
+    # Por isso não multiplica por unmixed.T
     spatial_maps = W_selected @ A.T
 
     return spatial_maps, A
